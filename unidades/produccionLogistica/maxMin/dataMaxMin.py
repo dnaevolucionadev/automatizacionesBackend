@@ -8,6 +8,28 @@ from unidades.administracion.reporteVentas.models import VentasPVA
 from unidades.produccionLogistica.maxMin.views.viewInsumo import updateMaxMin
 
 
+# --------------------------------------------------------------------------------------------------
+# * Función: calculationUnsharedInput
+# * Descripción: Calcula los máximos y mínimos de los productos que no son compartidos
+#
+# ! Parámetros:
+#   - inputs, inputsPSQL
+#           Son los insumos que se encuentran tanto en odoo como en la base de datos de PostgreSQL
+#
+# ? Condiciones para saber que retornar
+#   - El insumo que se compara debe de existir tanto en Odoo como en PostgreSQL
+#   - En caso de que no exista un promedio de ventas de insumo, este lo asignará como 0
+#   - En caso que si exista un insumo promedio, este realizará el cálculo para el tiempo de entrega (%vm * te/30)
+#   - Realiza los calculos de maximos y minimos siguiendo las fórmulas de 
+#       min = %vQ + mmi + te
+#       max = min + te + %vQ
+#
+#
+# ? Return:
+#   - No tiene ningun retorn
+#   - Le da un valor a la variable global insumosNoCompartidosUpdated
+# --------------------------------------------------------------------------------------------------
+
 insumosNoCompartidosUpdated = []
 insumosCompartidosUpdated   = []
 insumos_dict                = {}
@@ -29,16 +51,37 @@ def calculationUnsharedInput(inputs, inputsPSQL):
                 newMinQty = tiempoEntrega
                 newMaxQty = newMinQty + tiempoEntrega
             else:
+                newMinQty = insumo['insumo_promedio'] + (insumo['insumo_promedio'] * (insumo['tiempo_entrega'] / 30)) + tiempoEntrega
                 newMinQty = (insumo['insumo_promedio'] * 1.5) + tiempoEntrega
                 newMaxQty = newMinQty + tiempoEntrega + insumo['insumo_promedio']
 
             #Actualizamos en las bases de datos
             updateMaxMin(insumoActual, newMaxQty, newMinQty)
-
-            #print(response1)
+            
             insumosNoCompartidosUpdated.append(insumo)
 
-            #break  #! Para solo trabajar con uno
+            #break  #! Para solo trabajar con un solo producto
+
+
+# --------------------------------------------------------------------------------------------------
+# * Función: addAverageSalesSI
+# * Descripción: Va "juntando" el promedio de los productos compartidos en un solo arreglo. Sumando los productos que son los mismos
+#
+# ! Parámetros:
+#   - inputs
+#           Insumos que son compartidos en Odoo "Cumplen con la regla de 00 en el SKU"
+#
+# ? Condiciones para saber que retornar
+#   - Si no existe el insumo registrado en la nueva lista este la crea como nueva
+#   - En caso de que exista este sumará los promedios de venta
+#   - Si el promedio de venta es nulo entonces hace el cálculo correspondiente para que no genere error.
+#
+#
+# ? Return:
+#   - No tiene ningun retorn
+#   - Le da un valor a la variable global insumos_dict
+# --------------------------------------------------------------------------------------------------
+
 
 def addAverageSalesSI(inputs):
     for insumo in inputs:
@@ -54,6 +97,31 @@ def addAverageSalesSI(inputs):
 
 
 
+# --------------------------------------------------------------------------------------------------
+# * Función: updateMinMax
+# * Descripción: Realiza las consultas correspondientes de los datos para el calculo de los promedios de ventas
+# * Llama a las otras dos funciones anteriores y realiza los cambios de máximos y mínimos en las bases de datos.
+#
+# ! Parámetros:
+#   - request. Como se utiliza para URLS, recibe la información de la consulta
+#
+# ? Lógica de programación
+#   - Para los productos de Odoo
+#       - Obtener los productos que cuentan con más de 1 año de historial
+#           - Para sus promedios de ventas, estos deberán de calcularlo a partir del trimeste siguiente pero de un año atras
+#       - Obtener los productos con más de 6 meses de historial
+#           - Para los promedios de ventas, será los ultimos tres meses registrados de este producto
+#       - Los productos se van a dividir entre no compartidos y compartidos
+#   - Para lso productos de PostgreSQL
+#       - Obtenemos todos los productos registrados
+#   - Calculamos todos los máximos y mínimos tanto de productos compartidos como no compartidos. 
+#
+# ? Return:
+#   - Caso Success:
+#       Retorna JSON con los datos de todos los productos e insumos con sus datos de ventas
+#   - Caso Error:
+#       Retorna JSON con mensaje de error y descripción del error.
+# --------------------------------------------------------------------------------------------------
 #!Actualizar máximos y mínimos de Odoo. 
 def updateMinMax(request):
     try:
@@ -251,6 +319,8 @@ def updateMinMax(request):
         for insumoCompartido in insumosCompartidosJuntos:
             insumoActual = insumosForUpdated.get(insumoCompartido['insumo_id_ref'])
             if insumoActual:
+                if insumoCompartido['insumo_promedio'] == None:
+                    tiempoEntrega = 0
                 if insumoCompartido['tiempo_entrega'] == 0:
                     tiempoEntrega = 10
                 else:
@@ -260,6 +330,8 @@ def updateMinMax(request):
                     newMinQty = tiempoEntrega
                     newMaxQty = newMinQty + tiempoEntrega
                 else:
+                    newMinQty = insumoCompartido['insumo_promedio'] + (insumoCompartido['insumo_promedio'] * (insumoCompartido['tiempo_entrega'] / 30)) + tiempoEntrega
+                    newMaxQty = insumoCompartido['insumo_promedio'] * 9
                     newMinQty = (insumoCompartido['insumo_promedio'] * 1.5) + tiempoEntrega
                     newMaxQty = newMinQty + tiempoEntrega + insumoCompartido['insumo_promedio']
 
