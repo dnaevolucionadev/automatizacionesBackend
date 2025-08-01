@@ -57,6 +57,8 @@ urlpatterns = [
     path('auto/createVentasOdoo/', createVentasOdoo),
     
     #!Rutas para BajaRotación
-    path('auto/pullCaducidadesOdoo/', pullCaducidadesOdoo)
+    path('auto/pullCaducidadesOdoo/', pullCaducidadesOdoo),
+    path('auto/createCaducidadesOdoo/', createCaducidadesOdoo),
+    path('auto/updateCaducidadesOdoo/', updateCaducidadesOdoo)
     
 ]
