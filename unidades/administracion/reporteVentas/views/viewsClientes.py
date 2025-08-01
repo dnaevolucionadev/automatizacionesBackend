@@ -2,12 +2,13 @@ from django.http import JsonResponse
 from unidades.administracion.reporteVentas.models import Clientes
 from unidades.administracion.reporteVentas.controllers import ctrCliente
 
+
 # --------------------------------------------------------------------------------------------------
 # * Función: insertProducts
 # * Descripción: Inserta productos en la base de datos PostgreSQL.
 #
 # ! Parámetros:
-#     - Recibe una lista (array) de cleintes. Cada cliente debe contener los siguientes campos:
+#     - Recibe una lista (array) de clientes. Cada cliente debe contener los siguientes campos:
 #       { id, name, city, state_id, country_id, sale_order_count }
 #     - Nota: Solo el campo "id" es obligatorio; los demás son opcionales.
 #
@@ -16,11 +17,13 @@ from unidades.administracion.reporteVentas.controllers import ctrCliente
 #
 # --------------------------------------------------------------------------------------------------
 def insertClients(clients):
+    #Obtenemos todos los ids de clientes de Postgres
     clientesPSQL = Clientes.objects.all().values_list('idCliente', flat=True)
-            
+    
     newClientes = 0
     
     for cliente in clients:
+        #Si el id no esta en la base de datos lo agrega
         if cliente['id'] not in clientesPSQL:
             #Asignamos la distribución de la información en sus respectivas variables
             Clientes.objects.create(
@@ -34,7 +37,7 @@ def insertClients(clients):
             )
             newClientes=newClientes+1
     
-    return JsonResponse({
+    return ({
         'status'  : 'success',
         'message' : f'Los clientes son: {newClientes}'
     })
@@ -57,16 +60,15 @@ def insertClients(clients):
 # --------------------------------------------------------------------------------------------------
 def pullClientesOdoo(request):
     try:
-        print(0)
+        
         #Trae todos los clientes de la base de datos
         clientesOdoo=ctrCliente.get_allClients()
-        print(1)
         
         if clientesOdoo['status'] == 'success':
-            print(2)
+            
+            #Llama a insertClientes y le envia todos lo clientes que obtuvo de Odoo
             response=insertClients(clientesOdoo['clientes'])
             if response['status'] == "success":
-                print(3)
                 return JsonResponse({
                     'status'  : 'success',
                     'message' : f'Se han agregado correctamente {response['message']} Clientes nuevos'
@@ -89,28 +91,21 @@ def pullClientesOdoo(request):
         })
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#? Consultas para crear a los nuevos cliente de odoo
+# --------------------------------------------------------------------------------------------------
+# * Función: createClientesOdoo
+# * Descripción: Obtiene todos los clientes de Odoo que se haya creado desde un dia antes
+#
+# ! Parámetros:
+#     - request. Como se utiliza para URLS, recibe la información de la consulta
+#
+# ? Returns:
+#     - Caso error:
+#           Ocurre algún error en traer a los clientes de Odoo
+#           La función insertClients retorna mensaje de error
+#           Ocurre una excepción en la ejecución del código
+#     - Caso success:
+#           La función insertClients retorna mensaje success y envía mensaje con la cantidad de clientes agregados
+# --------------------------------------------------------------------------------------------------
 def createClientesOdoo(request):
     try:
         #Traer todos los clientes de Odoo
@@ -118,29 +113,18 @@ def createClientesOdoo(request):
         
         if clientesOdoo['status'] == 'success':
             
-            clientesPSQL = Clientes.objects.all().values_list('idCliente', flat=True)
-            
-            newClientes = 0
-            
-            for cliente in clientesOdoo['clientes']:
-                
-                if cliente['id'] not in clientesPSQL:
-                    #Asignamos la distribución de la información en sus respectivas variables
-                    Clientes.objects.create(
-                        idCliente           = cliente['id'],
-                        nombre              = cliente['name'] if cliente['name']!=False else "",
-                        ciudad              = cliente['city'] if cliente['city']!=False else "",
-                        estado              = cliente['state_id'][1] if cliente['state_id']!=False else "",
-                        pais                = cliente['country_id'][1] if cliente['country_id']!=False else "",
-                        tipoCliente         = "Cartera" if cliente['sale_order_count']>=2 else "Cliente Nuevo",
-                        numTransacciones    = cliente['sale_order_count']
-                    )
-                    newClientes=newClientes+1
-            
+            #Llama a insertClientes y le envia todos lo clientes que obtuvo de Odoo
+            response=insertClients(clientesOdoo['clientes'])
+            if response['status'] == "success":
+                return JsonResponse({
+                    'status'  : 'success',
+                    'message' : f'Se han agregado correctamente {response['message']} Clientes nuevos'
+                })
             return JsonResponse({
-                'status'  : 'success',
-                'message' : f'Los clientes nuevos son: {newClientes}'
+                'status'  : 'error',
+                'message' : response['message']
             })
+            
         else:
             return JsonResponse({
                 'status'  : 'error',
@@ -153,10 +137,25 @@ def createClientesOdoo(request):
             'message' : f'Ha ocurrido un error al tratar de insertar los datos de los nuevos clientes: {e}'
         })
 
-#? Consultas para actualizar a los clientes de odoo que se acualizaron un dia antes
+
+# --------------------------------------------------------------------------------------------------
+# * Función: updateClientesOdoo
+# * Descripción: Obtiene todos los clientes de Odoo que se haya creado desde un dia antes
+#
+# ! Parámetros:
+#     - request. Como se utiliza para URLS, recibe la información de la consulta
+#
+# ? Returns:
+#     - Caso error:
+#           Ocurre algún error en traer a los clientes de Odoo
+#           La función insertClients retorna mensaje de error
+#           Ocurre una excepción en la ejecución del código
+#     - Caso success:
+#           La función retorna mensaje success y envía mensaje con la cantidad de clientes modificados
+# --------------------------------------------------------------------------------------------------
 def updateClientesOdoo(request):
     try:
-        #Traer todos los clientes de Odoo
+        #Traer todos los clientes de Odoo que se actualizaron
         clientesOdoo=ctrCliente.update_Clients()
         
         if clientesOdoo['status'] == 'success':
@@ -164,8 +163,10 @@ def updateClientesOdoo(request):
             
             for cliente in clientesOdoo['clientes']:
                 try:
+                    #Busca el ID del cliente en Postgres
                     clienteAct = Clientes.objects.get(idCliente=cliente['id'])
                     
+                    #Cambia los valores de la Postgres por los nuevos valores que hay en odoo
                     clienteAct.nombre              = cliente['name'] if cliente['name']!=False else ""
                     clienteAct.ciudad              = cliente['city'] if cliente['city']!=False else ""
                     clienteAct.estado              = cliente['state_id'][1] if cliente['state_id']!=False else ""
@@ -173,6 +174,7 @@ def updateClientesOdoo(request):
                     clienteAct.tipoCliente         = "Cartera" if cliente['sale_order_count']>=2 else "Cliente Nuevo"
                     clienteAct.numTransacciones    = cliente['sale_order_count']
                     
+                    #Guarda los cambios de cliente
                     clienteAct.save()
                     newClientes=newClientes+1
                 except:
@@ -180,7 +182,7 @@ def updateClientesOdoo(request):
             
             return JsonResponse({
                 'status'  : 'success',
-                'message' : f'Los clientes son: {newClientes}'
+                'message' : f'Los clientes modificados son: {newClientes}'
             })
         else:
             return JsonResponse({
@@ -193,21 +195,23 @@ def updateClientesOdoo(request):
             'status'  : 'error',
             'message' : f'Ha ocurrido un error al tratar de insertar los datos: {e}'
         })
-    
-def deleteClientesPSQL(request):
-    return None
 
 
-
-
-
-
-
-
-
-
-
-#? Consulta para crear clientes desde el excel compact
+# --------------------------------------------------------------------------------------------------
+# * Función: createClientesExcel
+# * Descripción: Obtiene todos los clientes de un excel y llama a la función de insertar datos
+#
+# ! Parámetros:
+#     - request. Como se utiliza para URLS, recibe la información de la consulta
+#
+# ? Returns:
+#     - Caso error:
+#           Ocurre algún error en traer a los clientes de Odoo
+#           La función insertClients retorna mensaje de error
+#           Ocurre una excepción en la ejecución del código
+#     - Caso success:
+#           La función insertClients retorna mensaje success y envía mensaje con la cantidad de clientes agregados
+# --------------------------------------------------------------------------------------------------
 def createClientesExcel(request):
     try:
         clientesPSQL = Clientes.objects.all().values_list('idCliente', flat=True)
@@ -216,26 +220,18 @@ def createClientesExcel(request):
         
         if clientesOdoo['status'] == 'success':
             
-            newClientes=0
-            
-            for cliente in clientesOdoo['clientes']:
-                #Asignamos la distribución de la información en sus respectivas variables
-                Clientes.objects.create(
-                    idCliente           = cliente['id'],
-                    nombre              = cliente['name'] if cliente['name']!=False else "",
-                    ciudad              = cliente['city'] if cliente['city']!=False else "",
-                    estado              = cliente['state_id'][1] if cliente['state_id']!=False else "",
-                    pais                = cliente['country_id'][1] if cliente['country_id']!=False else "",
-                    tipoCliente         = "Cartera" if cliente['sale_order_count']>=2 else "Cliente Nuevo",
-                    numTransacciones    = cliente['sale_order_count']
-                )
-                newClientes=newClientes+1
-
-            
+            #Llama a insertClientes y le envia todos lo clientes que obtuvo del Excel y Odoo
+            response=insertClients(clientesOdoo['clientes'])
+            if response['status'] == "success":
+                return JsonResponse({
+                    'status'  : 'success',
+                    'message' : f'Se han agregado correctamente {response['message']} Clientes nuevos'
+                })
             return JsonResponse({
-                'status'  : 'success',
-                'message' : f'Los clientes nuevos son: {newClientes}'
+                'status'  : 'error',
+                'message' : response['message']
             })
+            
         else:
             return JsonResponse({
                 'status'  : 'error',
