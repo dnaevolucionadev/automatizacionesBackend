@@ -171,7 +171,6 @@ def updateClientesOdoo(request):
                     clienteAct.ciudad              = cliente['city'] if cliente['city']!=False else ""
                     clienteAct.estado              = cliente['state_id'][1] if cliente['state_id']!=False else ""
                     clienteAct.pais                = cliente['country_id'][1] if cliente['country_id']!=False else ""
-                    clienteAct.tipoCliente         = "Cartera" if cliente['sale_order_count']>=2 else "Cliente Nuevo"
                     
                     #Guarda los cambios de cliente
                     clienteAct.save()
