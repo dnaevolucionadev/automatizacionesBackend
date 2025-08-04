@@ -9,7 +9,7 @@ from unidades.administracion.reporteVentas.controllers import ctrCliente
 #
 # ! Parámetros:
 #     - Recibe una lista (array) de clientes. Cada cliente debe contener los siguientes campos:
-#       { id, name, city, state_id, country_id, sale_order_count }
+#       { id, name, city, state_id, country_id }
 #     - Nota: Solo el campo "id" es obligatorio; los demás son opcionales.
 #
 # ? Condiciones para insertar un producto en la base de datos:
@@ -32,8 +32,8 @@ def insertClients(clients):
                 ciudad              = cliente['city'] if cliente['city']!=False else "",
                 estado              = cliente['state_id'][1] if cliente['state_id']!=False else "",
                 pais                = cliente['country_id'][1] if cliente['country_id']!=False else "",
-                tipoCliente         = "Cartera" if cliente['sale_order_count']>=2 else "Cliente Nuevo",
-                numTransacciones    = cliente['sale_order_count']
+                tipoCliente         = "Cliente Nuevo",
+                numTransacciones    = 0
             )
             newClientes=newClientes+1
     
@@ -172,7 +172,6 @@ def updateClientesOdoo(request):
                     clienteAct.estado              = cliente['state_id'][1] if cliente['state_id']!=False else ""
                     clienteAct.pais                = cliente['country_id'][1] if cliente['country_id']!=False else ""
                     clienteAct.tipoCliente         = "Cartera" if cliente['sale_order_count']>=2 else "Cliente Nuevo"
-                    clienteAct.numTransacciones    = cliente['sale_order_count']
                     
                     #Guarda los cambios de cliente
                     clienteAct.save()

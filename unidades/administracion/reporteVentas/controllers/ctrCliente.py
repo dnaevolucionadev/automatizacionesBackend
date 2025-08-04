@@ -23,7 +23,7 @@ archivo = 'C:/Users/DSWB-PC02/Downloads/ContpaqBD.xlsx'
 # ? Return:
 #   - Caso success:
 #       Retorna un JSON con el status success y una lista (array) de clientes. cada producto contiene los siguientes campos:
-#       { id, name, city, state_id, country_id, sale_order_count }
+#       { id, name, city, state_id, country_id }
 #   - Caso error: 
 #       En caso de haber ocurrido algun error retorna un JSON con status error y el mensaje del error
 # --------------------------------------------------------------------------------------------------
@@ -42,7 +42,7 @@ def get_allClients():
             conn.db, conn.uid, conn.password, 
             'res.partner', 'search_read', 
             [[['invoice_ids', '!=', False], '|', ['active', '=', True], ['active', '=', False]]],
-            { 'fields' : ['name', 'city', 'state_id', 'country_id', 'sale_order_count']}
+            { 'fields' : ['name', 'city', 'state_id', 'country_id']}
         )
         
         #Retorna todos lo clientes encontrados
@@ -74,7 +74,7 @@ def get_allClients():
 # ? Return:
 #   - Caso success:
 #       Retorna un JSON con el status success y una lista (array) de clientes. cada producto contiene los siguientes campos:
-#       { id, name, city, state_id, country_id, sale_order_count }
+#       { id, name, city, state_id, country_id }
 #   - Caso error: 
 #       En caso de haber ocurrido algun error retorna un JSON con status error y el mensaje del error
 # --------------------------------------------------------------------------------------------------
@@ -96,7 +96,7 @@ def get_newClients():
             conn.db, conn.uid, conn.password, 
             'res.partner', 'search_read', 
             [[['create_date', '>=', lastDay], '|', ['active', '=', True], ['active', '=', False]]],
-            { 'fields' : ['name', 'city', 'state_id', 'country_id', 'sale_order_count']}
+            { 'fields' : ['name', 'city', 'state_id', 'country_id']}
         )
         
         #Retorna todos lo clientes encontrados
@@ -129,7 +129,7 @@ def get_newClients():
 # ? Return:
 #   - Caso success:
 #       Retorna un JSON con el status success y una lista (array) de clientes. cada producto contiene los siguientes campos:
-#       { id, name, city, state_id, country_id, sale_order_count }
+#       { id, name, city, state_id, country_id }
 #   - Caso error: 
 #       En caso de haber ocurrido algun error retorna un JSON con status error y el mensaje del error
 # --------------------------------------------------------------------------------------------------
@@ -151,7 +151,7 @@ def update_Clients():
             conn.db, conn.uid, conn.password, 
             'res.partner', 'search_read', 
             [[['write_date', '>=', lastDay], ['invoice_ids', '!=', False], '|', ['active', '=', True], ['active', '=', False]]],
-            { 'fields' : ['name', 'city', 'state_id', 'country_id', 'sale_order_count']}
+            { 'fields' : ['name', 'city', 'state_id', 'country_id']}
         )
         
         #Retorna todos lo clientes encontrados
@@ -183,7 +183,7 @@ def update_Clients():
 # ? Return:
 #   - Caso success:
 #       Retorna un JSON con el status success y una lista (array) de clientes. cada producto contiene los siguientes campos:
-#       { id, name, city, state_id, country_id, sale_order_count }
+#       { id, name, city, state_id, country_id }
 #   - Caso error: 
 #       En caso de haber ocurrido algun error retorna un JSON con status error y el mensaje del error
 # --------------------------------------------------------------------------------------------------  
@@ -214,7 +214,7 @@ def pullClientsExcel(idsclientes):
             conn.db, conn.uid, conn.password, 
             'res.partner', 'search_read', 
             [[['id', 'in', ids], '|', ['active', '=', True], ['active', '=', False]]],
-            { 'fields' : ['name', 'city', 'state_id', 'country_id', 'sale_order_count']}
+            { 'fields' : ['name', 'city', 'state_id', 'country_id']}
         )
         
         #A cada resultado de la lista de res_partner lo agrega como un objeto donde su propiedad es el id de cliente y la información es no obtenido de res_partner respecto al cliente
@@ -234,7 +234,6 @@ def pullClientsExcel(idsclientes):
                     'city': False,
                     'state_id': False,
                     'country_id': False,
-                    'sale_order_count': 0,
                 })
         
         #Retorna todos lo clientes encontrados

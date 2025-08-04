@@ -1,9 +1,8 @@
 from django.http import JsonResponse
-from unidades.administracion.reporteVentas.models import Ventas
+from unidades.administracion.reporteVentas.models import Ventas, Clientes
 from unidades.administracion.reporteVentas.views.viewsLineaPV import insertLineaVentaOdoo
 from unidades.administracion.reporteVentas.controllers import ctrVentas
 from unidades.produccionLogistica.maxMin.models import Insumos, Productos
-
 
 # --------------------------------------------------------------------------------------------------
 # * Función: insertVentas
@@ -52,6 +51,19 @@ def insertVentas(ventas):
                 #Nota de credito
                 if venta['move_type'] == 'out_refund':
                     newNota=newNota+1
+                try:
+                    #Obtenemos al cliente
+                    cliente = Clientes.objects.get(idCliente = venta['partner_id'][0])
+                    #Sumamos una nueva venta en el cliente
+                    cliente.numTransacciones=cliente.numTransacciones+1
+                    if cliente.numTransacciones >= 2:
+                        cliente.tipoCliente = 'Cartera'
+                    else:
+                        cliente.tipoCliente = 'Nuevo Cliente'
+                    #Guardamos los cambios
+                    cliente.save()
+                except:
+                    pass
             except:
                 pass
     return({
